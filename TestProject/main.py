@@ -1,5 +1,8 @@
 import os
 import time
+import atexit
+
+import easyMirai
 
 from rich.console import Console
 
@@ -27,7 +30,7 @@ class plugin:
         # 首次加载插件运行方法
         pluginName = os.path.splitext(filename)[0]
         plugin = __import__("plugins." + pluginName, fromlist=[pluginName])
-        plugin.plugins.activate(self)
+        plugin.plugins.activate(self, this)
 
     def configPlugins(self, filename):
         # 读取插件配置
@@ -41,9 +44,12 @@ class plugin:
 
     def loopPlugins(self, filename):
         # 循环执行插件主程序
-        pluginName = os.path.splitext(filename)[0]
-        plugin = __import__("plugins." + pluginName, fromlist=[pluginName])
-        plugin.plugins.render(self)
+        try:
+            pluginName = os.path.splitext(filename)[0]
+            plugin = __import__("plugins." + pluginName, fromlist=[pluginName])
+            plugin.plugins.render(self, this)
+        except Exception as re:
+            pass
 
     def statusPlugins(self, pluginName, pluginInfo):
         # 插件状态显示
@@ -54,10 +60,51 @@ class plugin:
         except Exception as re:
             pass
 
+    def shutdownPlugins(self, filename):
+        # 关闭插件
+        try:
+            pluginName = os.path.splitext(filename)[0]
+            plugin = __import__("plugins." + pluginName, fromlist=[pluginName])
+            plugin.plugins.deactivate(self, this)
+        except Exception as re:
+            pass
+
+
+class this(easyMirai.Mirai):
+    def begin(self) -> str:
+        pass
+
+
+obj = plugin()
+fileList = obj.loadPlugins()  # 开始加载插件
+
+
+# 框架停止运行时启用
+@atexit.register
+def quits():
+    # 释放资源用
+    try:
+        for lists in os.listdir("./plugins/"):
+            if lists.endswith('.py') or not lists.startswith("_"):
+                obj.shutdownPlugins(lists)
+                c.log("[Notice]：Shutdown Plugins " + lists + " succeed", style="#a4ff8f")
+    except Exception as re:
+        pass
+
+
+def loopObject():
+    # 运行主程序用
+    try:
+        time.sleep(1)
+        for lists in fileList:
+            obj.loopPlugins(lists)
+    except Exception as re:
+        pass
+
 
 if __name__ == '__main__':
-    obj = plugin()
-    fileList = obj.loadPlugins()  # 开始加载插件
+
+    print(len(fileList))
     try:
         for lists in fileList:  # 第一次调用并初始化插件
             obj.initPlugins(lists)
@@ -65,6 +112,4 @@ if __name__ == '__main__':
         pass
 
     while True:
-        time.sleep(2)
-        for lists in fileList:
-            obj.loopPlugins(lists)
+        loopObject()
