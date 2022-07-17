@@ -1,5 +1,6 @@
 """
 pluginMirai插件模版
+
 """
 
 
@@ -7,12 +8,10 @@ class plugins:
     def config(self) -> dict:
         # 插件配置项
         config = {
-            "pluginName": "测试插件1",  # 插件的名字
-            "Version": "v1.0.0",  # 插件的版本
-            "uri": "http://127.0.0.1",  # MiraiHTTPAPI接口地址
-            "port": "8080",  # MiraiHTTPAPI端口地址
-            "verifyKey": "just do do",  # 接口连接密钥
+            "pluginName": "测试插件2",  # 插件的名字
+            "Version": "v2.0.0",  # 插件的版本
             "BotID": "12345678"  # QQBot的号码
+
         }
         return config
 
@@ -26,4 +25,4 @@ class plugins:
 
     def deactivate(self, this):
         # 框架关闭时运行 用于释放一些资源使用
-        print("正在运行退出程序操作方法")
+        print("关闭时运行该函数方法")

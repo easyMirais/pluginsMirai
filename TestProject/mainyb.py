@@ -1,14 +1,28 @@
+"""
+异步测试版本
+"""
+
 import os
 import time
 import atexit
+from concurrent.futures import ThreadPoolExecutor
 
 import easyMirai
-import api
 
 from rich.console import Console
 
 c = Console()  # 实例化控制台输出
 
+botIDConfigList: dict = {}  # 存储每个文件BotID值的数组
+verifyKeyConfigList: dict = {}  # 存储每个文件verifyKey值的数组
+sessionConfigList: dict = {}  # 存储每个文件BotID所绑定的session值
+
+"""
+提示：
+sessionConfigList字典里每个键是BotID 每个值是 Session 一个BotID对应一个Session，在this函数里根据每个文件BotID对应的值不同而调用
+不同Session值
+每个相同的ID使用判断自动跳过，避免重复绑定
+"""
 
 
 class plugin:
@@ -76,13 +90,7 @@ class plugin:
             pass
 
 
-class begin(plugin):
-    # 初始化mirai类
-    pass
-
-
 class this(easyMirai.Mirai):
-    # 插件内调用函数类
     def begin(self) -> str:
         pass
 
@@ -91,6 +99,11 @@ obj = plugin()
 fileList = obj.loadPlugins()  # 开始加载插件
 
 
+def listConfigs():
+    for lists in fileList:
+        botIDConfigList[lists] = obj.configPlugins(lists)["BotID"]
+    print(botIDConfigList)
+    pass
 
 
 # 框架停止运行时启用
@@ -106,7 +119,18 @@ def quits():
         pass
 
 
-def loopObject():
+def threadPoolOBJ(maxWork: int):
+    # 创建新线程池函数
+    pool = ThreadPoolExecutor(maxWork)
+    c.log("[Notice]：成功创建容量为" + str(maxWork) + "的线程池", style="#a4ff8f")
+    return pool
+
+
+# 以插件数量的基础上+3为最大执行数量
+pool = threadPoolOBJ(len(fileList) + 3)
+
+
+def loopOBJ():
     # 运行主程序用
     try:
         time.sleep(1)
@@ -117,14 +141,12 @@ def loopObject():
 
 
 if __name__ == '__main__':
-
     listConfigs()
-
     try:
         for lists in fileList:  # 第一次调用并初始化插件
-            obj.initPlugins(lists)
+            pool.submit(obj.initPlugins, lists)  # 将初始化函数推到线程池做并发初始化处理
     except Exception as re:
         pass
 
     while True:
-        loopObject()
+        loopOBJ()
