@@ -23,7 +23,7 @@ class plugins:
 
     def render(self):
         # 循环运行的主程序方法
-        pass
+        print(time.time())
 
     def deactivate(self):
         # 框架关闭时运行 用于释放一些资源使用

@@ -8,8 +8,9 @@ import time
 import atexit
 from concurrent.futures import ThreadPoolExecutor
 
-import easyMirai as easyMirai
 import requests
+
+import easyMirai
 
 from rich.console import Console
 
@@ -60,24 +61,16 @@ class argv:
                         "logFile": False
                     }
 
+    pass
 
-class this:
+
+class plugin:
+
+    # 插件装载触发函数
 
     def __init__(self):
         self.pluginFile = []  # 存储插件文件名称
-        self.session = ""  # 存储已经绑定的Session
-
-    # 插件内调用函数类
-    def begin(self) -> str:
-        pass
-
-    def getSession(self):
-        return globalConfigList
-
-
-class plugin(this):
-
-    # 插件装载触发函数
+        self.session = []  # 存储已经绑定的Session
 
     def loadPlugins(self):
         # 在plugins中获取插件文件
@@ -85,11 +78,11 @@ class plugin(this):
             pluginNumber: int = 0
             for pluginName in os.listdir("./plugins/"):
                 if pluginName.endswith('.py') or not pluginName.startswith("_"):
-                    if pluginName != "easySys":  # 强制排除系统文件夹
-                        self.configPlugins(pluginName)  # 调用config读取配置文件
-                        self.pluginFile.append(str(pluginName))  # 将文件名称添加到数组
-                        pluginNumber = pluginNumber + 1
+                    self.configPlugins(pluginName)
+                    self.pluginFile.append(str(pluginName))  # 将文件名称添加到数组
+                    pluginNumber = pluginNumber + 1
         except Exception as re:
+
             pass
             print(re)
         c.log("[Notice]：", "已完成 " + str(pluginNumber) + " 个插件装载", style="#a4ff8f")
@@ -98,17 +91,16 @@ class plugin(this):
     def initPlugins(self, filename):
         # 首次加载插件运行方法
         pluginName = os.path.splitext(filename)[0]
-        plugin = __import__("plugins." + pluginName, fromlist=[pluginName], globals=globalConfigList)
+        plugin = __import__("plugins." + pluginName, fromlist=[pluginName])
         self.statusPlugins(pluginName, self.configPlugins(pluginName))
-        plugin.plugins.activate(self, )
+        plugin.plugins.activate(self, this)
 
     def configPlugins(self, filename):
         # 读取插件配置
         try:
             pluginName = os.path.splitext(filename)[0]
             plugin = __import__("plugins." + pluginName, fromlist=[pluginName])
-            configInfo = plugin.plugins.config(self)
-            return configInfo
+            return plugin.plugins.config(self)
         except Exception as re:
             pass
             print(re)
@@ -118,7 +110,7 @@ class plugin(this):
         try:
             pluginName = os.path.splitext(filename)[0]
             plugin = __import__("plugins." + pluginName, fromlist=[pluginName])
-            plugin.plugins.render(self)
+            plugin.plugins.render(self, this)
         except Exception as re:
             pass
             print(re)
@@ -138,10 +130,19 @@ class plugin(this):
         try:
             pluginName = os.path.splitext(filename)[0]
             plugin = __import__("plugins." + pluginName, fromlist=[pluginName])
-            plugin.plugins.deactivate(self)
+            plugin.plugins.deactivate(self, this)
         except Exception as re:
             print(re)
             pass
+
+
+class this:
+    # 插件内调用函数类
+    def begin(self) -> str:
+        pass
+
+    def getSession(self):
+        return globalConfigList
 
 
 first = argv()  # 初始化参数读取器
@@ -198,7 +199,6 @@ def getSession():
             data = json.loads(request.text)
             if data["code"] == 0:
                 # 将session写入全局变量字典
-                this.session = str(data["session"])
                 globalConfigList["Bot"][str(configList.get(lists)['BotID'])] = {
                     "session": data["session"],
                     "host": str(configList.get(lists)["host"]),
@@ -207,7 +207,7 @@ def getSession():
                 c.log("[Notice]：文件 " + lists + " 获取session成功，详细: " + data['session'], style="#a4ff8f")
             else:
                 # 发生错误时将全局变量的的session设置为空
-                globalConfigList["Bot"][str(configList.get(lists)['BotID'])] = {"session": ""}
+                globalConfigList[str(configList.get(lists)['BotID'])] = {"session": ""}
                 c.log("[Warning]：文件 " + lists + " 中 verifyKey 发生错误，详细：" + data["msg"], style="#f6ff8f")
 
 
@@ -243,9 +243,8 @@ def quits():
         # 执行插件内自定义退出函数
         for lists in os.listdir("./plugins/"):
             if lists.endswith('.py') or not lists.startswith("_"):
-                if lists != "eSys":  # 强制排除系统文件夹
-                    obj.shutdownPlugins(lists)
-                    c.log("[Notice]：Shutdown Plugins " + lists + " succeed", style="#a4ff8f")
+                obj.shutdownPlugins(lists)
+                c.log("[Notice]：Shutdown Plugins " + lists + " succeed", style="#a4ff8f")
         # 释放Session
         for lists in globalConfigList["Bot"]:
             if len(globalConfigList["Bot"].get(lists)["session"]) != 0:
@@ -298,6 +297,7 @@ if __name__ == '__main__':
     listConfigs()  # 获取配置信息
     instrumentConfig()  # 测试每一个模块提供的地址是否有效
     getSession()  # 获取Session
+    print(globalConfigList)
     bindSession()  # 绑定session
 
     try:

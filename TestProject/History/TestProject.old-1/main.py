@@ -8,8 +8,9 @@ import time
 import atexit
 from concurrent.futures import ThreadPoolExecutor
 
-import easyMirai as easyMirai
 import requests
+
+import pluginMirai
 
 from rich.console import Console
 
@@ -83,9 +84,9 @@ class plugin(this):
         # 在plugins中获取插件文件
         try:
             pluginNumber: int = 0
-            for pluginName in os.listdir("./plugins/"):
+            for pluginName in os.listdir("plugins/"):
                 if pluginName.endswith('.py') or not pluginName.startswith("_"):
-                    if pluginName != "easySys":  # 强制排除系统文件夹
+                    if pluginName != "eSys":  # 强制排除系统文件夹
                         self.configPlugins(pluginName)  # 调用config读取配置文件
                         self.pluginFile.append(str(pluginName))  # 将文件名称添加到数组
                         pluginNumber = pluginNumber + 1
@@ -100,7 +101,7 @@ class plugin(this):
         pluginName = os.path.splitext(filename)[0]
         plugin = __import__("plugins." + pluginName, fromlist=[pluginName], globals=globalConfigList)
         self.statusPlugins(pluginName, self.configPlugins(pluginName))
-        plugin.plugins.activate(self, )
+        plugin.plugins.activate(self, globalConfigList)
 
     def configPlugins(self, filename):
         # 读取插件配置
@@ -241,7 +242,7 @@ def quits():
     # 释放资源用
     try:
         # 执行插件内自定义退出函数
-        for lists in os.listdir("./plugins/"):
+        for lists in os.listdir("plugins/"):
             if lists.endswith('.py') or not lists.startswith("_"):
                 if lists != "eSys":  # 强制排除系统文件夹
                     obj.shutdownPlugins(lists)
@@ -298,6 +299,7 @@ if __name__ == '__main__':
     listConfigs()  # 获取配置信息
     instrumentConfig()  # 测试每一个模块提供的地址是否有效
     getSession()  # 获取Session
+    print(globalConfigList)
     bindSession()  # 绑定session
 
     try:

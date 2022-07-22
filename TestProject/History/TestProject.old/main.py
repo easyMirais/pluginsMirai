@@ -8,8 +8,9 @@ import time
 import atexit
 from concurrent.futures import ThreadPoolExecutor
 
-import easyMirai as easyMirai
 import requests
+
+import pluginMirai
 
 from rich.console import Console
 
@@ -74,6 +75,36 @@ class this:
     def getSession(self):
         return globalConfigList
 
+    def sendFriend(self, send, msg, tar):
+        # 发送好友消息
+        """
+        发送好友普通消息
+        :param send: 发送者ID
+        :param msg: 消息字典
+        :param tar: 消息发送的目标
+        :return:{'code': 0, 'msg': 'success', 'messageId': XXXX}
+        """
+        headers = {
+            'Connection': 'close'
+        }
+        if len(msg) >= 0:
+            message = json.dumps(msg)
+            message = '{"sessionKey":"' + self.session + '","target":' + tar + ',"messageChain":[' + message + ']}'
+            request = requests.post(url=self.host + ":" + self.port + "/sendFriendMessage", data=str(message),
+                                    headers=headers)
+            if request.status_code == 200:
+                request = json.loads(request.text)
+                if request['code'] == 0:
+                    self.Debug(request, 5)
+                    self.Debug("好友消息发送成功！", 0)
+                    return request
+                else:
+                    self.Debug("发送好友信息失败！", 1)
+                    self.Debug(request['msg'], 1)
+
+            else:
+                self.Debug("连接请求失败！请检查网络配置！", 2)
+
 
 class plugin(this):
 
@@ -83,13 +114,13 @@ class plugin(this):
         # 在plugins中获取插件文件
         try:
             pluginNumber: int = 0
-            for pluginName in os.listdir("./plugins/"):
+            for pluginName in os.listdir("plugins/"):
                 if pluginName.endswith('.py') or not pluginName.startswith("_"):
-                    if pluginName != "easySys":  # 强制排除系统文件夹
-                        self.configPlugins(pluginName)  # 调用config读取配置文件
-                        self.pluginFile.append(str(pluginName))  # 将文件名称添加到数组
-                        pluginNumber = pluginNumber + 1
+                    self.configPlugins(pluginName)
+                    self.pluginFile.append(str(pluginName))  # 将文件名称添加到数组
+                    pluginNumber = pluginNumber + 1
         except Exception as re:
+
             pass
             print(re)
         c.log("[Notice]：", "已完成 " + str(pluginNumber) + " 个插件装载", style="#a4ff8f")
@@ -100,15 +131,14 @@ class plugin(this):
         pluginName = os.path.splitext(filename)[0]
         plugin = __import__("plugins." + pluginName, fromlist=[pluginName], globals=globalConfigList)
         self.statusPlugins(pluginName, self.configPlugins(pluginName))
-        plugin.plugins.activate(self, )
+        plugin.plugins.activate(self, globalConfigList)
 
     def configPlugins(self, filename):
         # 读取插件配置
         try:
             pluginName = os.path.splitext(filename)[0]
             plugin = __import__("plugins." + pluginName, fromlist=[pluginName])
-            configInfo = plugin.plugins.config(self)
-            return configInfo
+            return plugin.plugins.config(self)
         except Exception as re:
             pass
             print(re)
@@ -142,6 +172,11 @@ class plugin(this):
         except Exception as re:
             print(re)
             pass
+
+
+class emc:
+    def __init__(self):
+        self.globalSelf = globalConfigList
 
 
 first = argv()  # 初始化参数读取器
@@ -241,11 +276,10 @@ def quits():
     # 释放资源用
     try:
         # 执行插件内自定义退出函数
-        for lists in os.listdir("./plugins/"):
+        for lists in os.listdir("plugins/"):
             if lists.endswith('.py') or not lists.startswith("_"):
-                if lists != "eSys":  # 强制排除系统文件夹
-                    obj.shutdownPlugins(lists)
-                    c.log("[Notice]：Shutdown Plugins " + lists + " succeed", style="#a4ff8f")
+                obj.shutdownPlugins(lists)
+                c.log("[Notice]：Shutdown Plugins " + lists + " succeed", style="#a4ff8f")
         # 释放Session
         for lists in globalConfigList["Bot"]:
             if len(globalConfigList["Bot"].get(lists)["session"]) != 0:
@@ -298,6 +332,7 @@ if __name__ == '__main__':
     listConfigs()  # 获取配置信息
     instrumentConfig()  # 测试每一个模块提供的地址是否有效
     getSession()  # 获取Session
+    print(globalConfigList)
     bindSession()  # 绑定session
 
     try:
