@@ -1,6 +1,7 @@
 """
 pluginMirai插件模版
 """
+import time
 
 
 class plugins:
@@ -22,7 +23,7 @@ class plugins:
 
     def render(self, this):
         # 循环运行的主程序方法
-        print("正在运行主程序方法")
+        print(time.time())
 
     def deactivate(self, this):
         # 框架关闭时运行 用于释放一些资源使用
